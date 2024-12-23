@@ -1,0 +1,46 @@
+.div{
+    display: grid;
+    min-height: 100vh;
+    grid-template-rows: 1fr 6.5fr;
+    background-image: url("../../assets/images/landing_background.jpg");
+    background-size: cover;
+    font-size: 1.5vm;
+    padding: 0 50px;
+}    
+
+.div1{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    
+}
+.div1 div h1{
+    margin-top: 30%;
+    margin-bottom: 30px;
+    color: white;
+    width: 100%;
+    font-size: 45px;
+}
+
+.div1 div p {
+    color: white;
+    font-size: 1.2em;
+    line-height: 1.3;
+    margin-bottom: 50px;
+}
+
+.div1 div a{
+    text-decoration: none;
+    color: white;
+    padding: 12px  28px;
+    border: none;
+    border-radius: 2px;
+    background-color: #3E1886;
+
+}
+
+.div1 div a:hover {
+    background-color: #532e97;
+}
+
+
+
