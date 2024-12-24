@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify, make_response
 from flask_sqlalchemy import SQLAlchemy
 from os import environ
 from datetime import datetime
+from werkzeug.security import generate_password_hash
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -11,25 +13,28 @@ class Locataire(db.Model):
     __tablename__ = 'locataire'
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), unique=True, nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    phone_number = db.Column(db.String(15), nullable=False)
-    password = db.Column(db.String(200), nullable=False)  # Assurez-vous de hacher le mot de passe
+    name = db.Column(db.String(80), unique=False, nullable=False)
+    phoneNumber = db.Column(db.String(15), nullable=False)
+    password = db.Column(db.String(200), nullable=False)  # Stocke un mot de passe haché
     birthday = db.Column(db.Date)
+    sexe = db.Column(db.String(10))  # Exemple : 'Homme', 'Femme', 'Autre'
     address = db.Column(db.String(255))
-    social_links = db.Column(db.String(255))
-    images=db.Column(db.BLOB)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    socialLinks = db.Column(db.String(255))  # Peut contenir des URLs de profils sociaux
+    identityDocument = db.Column(db.BLOB)  # Fichiers d'identité (images ou PDF)
+    photo = db.Column(db.BLOB)  # Photo du locataire
 
     def json(self):
+        """Convertit les données en format JSON."""
         return {
             'id': self.id,
             'name': self.name,
-            'email': self.email,
-            'phone_number': self.phone_number,
+            'phoneNumber': self.phoneNumber,
             'birthday': self.birthday.strftime("%Y-%m-%d") if self.birthday else None,
+            'sexe': self.sexe,
             'address': self.address,
-            'social_links': self.social_links
-            
+            'email': self.email,
+            'socialLinks': self.socialLinks
         }
 
 # Créer un contexte d'application
@@ -46,34 +51,58 @@ def log_error(message, error):
 def test():
     return make_response(jsonify({'message': 'test route'}), 200)
 
-# Create a locataire
 @app.route('/locataires', methods=['POST'])
 def create_locataire():
     try:
-        data = request.get_json()
+       
+
+        # Vérification des champs obligatoires
+        required_fields = ['name', 'phoneNumber', 'password', 'email']
+        for field in required_fields:
+            if not request.form.get(field):
+                print(f"Champs manquants: {field}")
+                return make_response(jsonify({'message': f'Missing field: {field}'}), 400)
+
+        # Récupération des données et fichiers
+        data = request.form
+        file_identity = request.files.get('identityDocument')
+        file_photo = request.files.get('photo')
         
-        # Conversion de la date en objet date
-        birthday = datetime.strptime(data['birthday'], "%Y-%m-%d").date() if data.get('birthday') else None
-        
+        identity_document_data = file_identity.read() if file_identity else None
+        photo_data = file_photo.read() if file_photo else None
+
+        # Hachage du mot de passe
+        hashed_password = generate_password_hash(data['password'], method='pbkdf2:sha256')
+
+        # Conversion de la date d'anniversaire
+        birthday = datetime.strptime(data.get('birthday'), "%Y-%m-%d").date() if data.get('birthday') else None
+
+        # Création de l'objet Locataire
         new_locataire = Locataire(
             name=data['name'],
-            email=data['email'],
-            phone_number=data['phone_number'],
-            password=data['password'],  # N'oubliez pas de hacher le mot de passe
+            phoneNumber=data['phoneNumber'],
+            password=hashed_password,
             birthday=birthday,
+            sexe=data.get('sexe'),
             address=data.get('address'),
-            social_links=data.get('social_links')
-            
+            email=data['email'],
+            socialLinks=data.get('socialLinks'),
+            identityDocument=identity_document_data,
+            photo=photo_data
         )
-        
+
+        # Ajout à la base de données
         db.session.add(new_locataire)
         db.session.commit()
-        log_success(f"Locataire '{new_locataire.name}' créé avec succès.")
-        return make_response(jsonify({'message': 'locataire created'}), 201)
+        print("Locataire creer avec sucess")
+        # Succès
+        return make_response(jsonify({'message': 'Locataire created successfully'}), 201)
+
     except Exception as e:
         log_error("Erreur lors de la création du locataire", str(e))
-        return make_response(jsonify({'message': 'error creating locataire', 'error': str(e)}), 500)
-       
+        return make_response(jsonify({'message': 'Error creating locataire', 'error': str(e)}), 500)
+        print("erreur lors de la creation")
+
 # Get all locataires
 @app.route('/locataires', methods=['GET'])
 def get_locataires():
@@ -103,10 +132,10 @@ def update_locataire(id):
             data = request.get_json()
             locataire.name = data['name']
             locataire.email = data['email']
-            locataire.phone_number = data['phone_number']
+            locataire.phoneNumber = data['phoneNumber']
             locataire.birthday = data.get('birthday')
             locataire.address = data.get('address')
-            locataire.social_links = data.get('social_links')
+            locataire.socialLinks = data.get('socialLinks')
             #locataire.images = data.get('images')
             db.session.commit()
             return make_response(jsonify({'message': 'locataire updated'}), 200)

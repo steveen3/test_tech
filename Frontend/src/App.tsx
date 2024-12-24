@@ -5,6 +5,7 @@ import {
   
   LandingPage,
   Locataire,
+  Locataireprofile
   
   
   
@@ -18,6 +19,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage/>}/>
         <Route path="/locataire" element={<Locataire/>}/>
+        <Route path="/locataireprofile" element={<Locataireprofile/>}/>
         
         
         
